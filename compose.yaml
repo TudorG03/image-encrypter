@@ -1,0 +1,79 @@
+services:
+  c01:
+    build: ./c01
+    container_name: c01
+    ports:
+      - "3000:3000"
+      - "8080:8080"
+    networks:
+      - dadnet
+    depends_on:
+      c02:
+        condition: service_healthy
+    environment:
+      RABBITMQ_HOST: c02
+      C05_HOST: c05
+
+  c02:
+    build: ./c02
+    container_name: c02
+    ports:
+      - "15672:15672"
+    expose:
+      - "5672"
+    networks:
+      - dadnet
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  c03:
+    build: ./c03
+    container_name: c03
+    networks:
+      - dadnet
+    depends_on:
+      c02:
+        condition: service_healthy
+      c05:
+        condition: service_healthy
+    volumes:
+      - mpi_volume:/mpi
+    environment:
+      RABBITMQ_HOST: c02
+      C05_HOST: c05
+      C01_HOST: c01
+
+  c04:
+    build: ./c04
+    container_name: c04
+    networks:
+      - dadnet
+    expose:
+      - "22"
+    volumes:
+      - mpi_volume:/mpi
+
+  c05:
+    build: ./c05
+    container_name: c05
+    ports:
+      - "3001:3001"
+    networks:
+      - dadnet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+networks:
+  dadnet:
+    driver: bridge
+
+volumes:
+  mpi_volume:

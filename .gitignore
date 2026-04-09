@@ -1,0 +1,23 @@
+# Maven / Java
+target/
+*.class
+*.jar
+
+# Node
+node_modules/
+dist/
+build/
+
+# Environment
+.env
+
+# Logs
+*.log
+
+# Claude
+sessions
+.claude
+CLAUDE.md
+
+# Misc
+requirements.md
