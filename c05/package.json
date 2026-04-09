@@ -1,0 +1,9 @@
+{
+    "name": "c05",
+    "version": "1.0.0",
+    "main": "app.js",
+    "dependencies": {
+        "express": "^5.2.0",
+        "mysql2": "^3.21.0"
+    }
+}
