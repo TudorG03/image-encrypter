@@ -9,9 +9,8 @@ const connectWithRetry = async () => {
     while (true) {
         try {
             db = await mysql.createConnection({
-                host: 'localhost',
+                socketPath: '/var/run/mysqld/mysqld.sock',
                 user: 'root',
-                password: '',
                 multipleStatements: true
             });
             console.log('MySQL connected');
