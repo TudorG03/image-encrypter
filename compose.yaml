@@ -48,7 +48,9 @@ services:
       C01_HOST: c01
 
   c04:
-    build: ./c04
+    build:
+      context: .
+      dockerfile: c04/Dockerfile
     container_name: c04
     networks:
       - dadnet
