@@ -13,7 +13,7 @@ RUN printf 'Host c04\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile /dev/null
 COPY c03/encrypt_decrypt.c /build/encrypt_decrypt.c
 RUN mpicc -O2 -fopenmp -o /build/encrypt_decrypt /build/encrypt_decrypt.c -lssl -lcrypto
 
-COPY c03/c03.war $CATALINA_HOME/webapps/c03.war
+COPY c03/c03/target/c03.war $CATALINA_HOME/webapps/c03.war
 
 COPY c03/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

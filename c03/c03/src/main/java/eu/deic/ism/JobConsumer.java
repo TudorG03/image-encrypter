@@ -18,13 +18,14 @@ public class JobConsumer implements Runnable {
     public void run() {
         try {
             ConnectionFactory factory = new ConnectionFactory();
-            factory.setHost(System.getenv("RABBITMQ_HOST"));
+            factory.setHost(System.getenv().getOrDefault("RABBITMQ_HOST", "c02"));
             factory.setUsername("admin");
             factory.setPassword("admin");
 
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     connection = factory.newConnection();
+                    break;
                 } catch (Exception e) {
                     System.err.println("RabbitMQ broker not ready, retrying in 3s...");
                     Thread.sleep(3000);
@@ -53,6 +54,15 @@ public class JobConsumer implements Runnable {
         ObjectMapper mapper = new ObjectMapper();
         JobMessage job = mapper.readValue(body, JobMessage.class);
         byte[] imageBytes = Base64.getDecoder().decode(job.image);
+
+        try {
+            byte[] result = new MpiLauncher().launch(imageBytes, job);
+            String downloadUrl = new C05Client().upload(result, job);
+            new C01Client().notify(job.jobId, downloadUrl);
+        } catch (Exception e) {
+            System.err.println("Job " + job.jobId + " failed: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     public void stop() {

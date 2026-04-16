@@ -2,6 +2,10 @@
 target/
 *.class
 *.jar
+*.war
+
+# Compiled binaries
+c03/encrypt_decrypt
 
 # Node
 node_modules/
