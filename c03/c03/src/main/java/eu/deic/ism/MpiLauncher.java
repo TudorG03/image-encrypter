@@ -20,6 +20,7 @@ public class MpiLauncher {
 
             List<String> cmd = new ArrayList<>(Arrays.asList(
                 "mpirun",
+                "--allow-run-as-root",
                 "-np", "2",
                 "--host", "c03,c04",
                 "/mpi/encrypt_decrypt",
