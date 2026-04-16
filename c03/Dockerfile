@@ -1,11 +1,9 @@
-# Stage 1: Build the WAR with JDK 17
 FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
 COPY c03/c03/pom.xml .
 COPY c03/c03/src ./src
 RUN mvn clean package -DskipTests
 
-# Stage 2: Runtime
 FROM critoma/amd64_u24_noble_ism_security
 
 ENV JAVA_HOME=/opt/software/java/jdks/jdk-25.0.1
