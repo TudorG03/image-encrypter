@@ -31,7 +31,9 @@ services:
       start_period: 30s
 
   c03:
-    build: ./c03
+    build:
+      context: .
+      dockerfile: c03/Dockerfile
     container_name: c03
     networks:
       - dadnet

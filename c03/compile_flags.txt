@@ -1,0 +1,2 @@
+-fopenmp
+-I/usr/include/openmpi-x86_64
