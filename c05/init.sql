@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS processed_images (
     job_id      VARCHAR(255) NOT NULL,
     operation   VARCHAR(10)  NOT NULL,
     mode        VARCHAR(10)  NOT NULL,
+    iv          VARCHAR(32)  NULL,
     aes_key     VARCHAR(512) NOT NULL,
     image_data  LONGBLOB     NOT NULL,
     created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP

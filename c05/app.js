@@ -41,7 +41,7 @@ app.use(express.raw({
 app.use(express.json());
 
 app.post('/image', async (req, res) => {
-    const { job_id, operation, mode, aes_key } = req.query;
+    const { job_id, operation, mode, aes_key, iv } = req.query;
 
     if (!job_id || !operation || !mode || !aes_key) {
         return res.status(400).json({ error: 'Missing query params' });
@@ -57,8 +57,8 @@ app.post('/image', async (req, res) => {
 
     try {
         const [result] = await db.query(
-            'INSERT INTO processed_images (job_id, operation, mode, aes_key, image_data) VALUES (?, ?, ?, ?, ?)',
-            [job_id, operation, mode, aes_key, req.body]
+            'INSERT INTO processed_images (job_id, operation, mode, iv, aes_key, image_data) VALUES (?, ?, ?, ?, ?, ?)',
+            [job_id, operation, mode, iv, aes_key, req.body]
         );
 
         res.status(201).json({ id: result.insertId });
