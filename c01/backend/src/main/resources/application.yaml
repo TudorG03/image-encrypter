@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: c01
+  rabbitmq:
+    host: ${RABBITMQ_HOST:c02}
+    port: 5672
+    username: admin
+    password: admin
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: 6379
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:changeme-32-char-secret-for-hmac-256}
+    expiry-ms: 86400000
+  c05:
+    host: ${C05_HOST:c05}
+    internal-secret: ${INTERNAL_SECRET:changeme-internal-secret}
+
+server:
+  port: 8080
