@@ -3,16 +3,22 @@ services:
     build: ./c01
     container_name: c01
     ports:
-      - "3000:3000"
       - "8080:8080"
     networks:
       - dadnet
     depends_on:
       c02:
         condition: service_healthy
+      c05:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       RABBITMQ_HOST: c02
       C05_HOST: c05
+      REDIS_HOST: redis
+      INTERNAL_SECRET: ${INTERNAL_SECRET:-changeme-internal-secret}
+      JWT_SECRET: ${JWT_SECRET:-changeme-32-char-secret-for-hmac-256}
 
   c02:
     build: ./c02
@@ -74,6 +80,19 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    environment:
+      INTERNAL_SECRET: ${INTERNAL_SECRET:-changeme-internal-secret}
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    networks:
+      - dadnet
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   dadnet:
