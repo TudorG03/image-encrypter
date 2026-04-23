@@ -7,8 +7,10 @@ import java.util.UUID;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import eu.deic.ism.client.C05ApiClient;
+import eu.deic.ism.dto.JobDoneRequest;
 import eu.deic.ism.dto.JobResponse;
 import eu.deic.ism.dto.JobSubmitResponse;
 
@@ -24,10 +26,14 @@ public class JobService {
 
     private ObjectMapper objectMapper;
 
-    public JobService(C05ApiClient c05ApiClient, RabbitTemplate rabbitTemplate, ObjectMapper objectMapper) {
+    private JobNotificationService jobNotificationService;
+
+    public JobService(C05ApiClient c05ApiClient, RabbitTemplate rabbitTemplate, ObjectMapper objectMapper,
+            JobNotificationService jobNotificationService) {
         this.c05ApiClient = c05ApiClient;
         this.rabbitTemplate = rabbitTemplate;
         this.objectMapper = objectMapper;
+        this.jobNotificationService = jobNotificationService;
     }
 
     public JobSubmitResponse submit(String username, byte[] imageBytes, String operation, String mode, String keyHex,
@@ -51,5 +57,14 @@ public class JobService {
     public List<JobResponse> listForUser(String username) {
         int userId = (Integer) c05ApiClient.getUserByUsername(username).get("id");
         return c05ApiClient.listJobsByUser(userId);
+    }
+
+    public void handleJobDone(JobDoneRequest request) {
+        c05ApiClient.markJobDone(request.jobId(), "done", request.downloadUrl());
+        jobNotificationService.publish(request.jobId(), request.downloadUrl());
+    }
+
+    public SseEmitter handleStream(String jobId) {
+        return jobNotificationService.subscribe(jobId);
     }
 }
