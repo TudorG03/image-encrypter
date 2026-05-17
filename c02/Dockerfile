@@ -15,14 +15,17 @@ RUN apt-get update -y && \
     erlang-mnesia erlang-os-mon erlang-parsetools erlang-public-key \
     erlang-runtime-tools erlang-snmp erlang-ssl \
     erlang-syntax-tools erlang-tftp erlang-tools erlang-xmerl && \
-    apt-get install -y rabbitmq-server && \
+    apt-get install -y rabbitmq-server snmpd && \
     rm -rf /var/lib/apt/lists/*
 
 RUN rabbitmq-plugins enable rabbitmq_management
 
 COPY rabbitmq.conf /etc/rabbitmq/rabbitmq.conf
 COPY definitions.json /etc/rabbitmq/definitions.json
+COPY snmpd.conf /etc/snmp/snmpd.conf
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 5672 15672
 
-CMD ["rabbitmq-server"]
+CMD ["/entrypoint.sh"]

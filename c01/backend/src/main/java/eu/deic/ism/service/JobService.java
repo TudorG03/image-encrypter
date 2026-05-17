@@ -1,6 +1,7 @@
 package eu.deic.ism.service;
 
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -41,13 +42,15 @@ public class JobService {
         int userId = (Integer) c05ApiClient.getUserByUsername(username).get("id");
         String jobId = UUID.randomUUID().toString();
         c05ApiClient.createJob(jobId, userId, operation, mode, keyHex, ivHex);
-        Map<String, String> map = Map.of(
-                "jobId", jobId,
-                "operation", operation,
-                "mode", mode,
-                "keyHex", keyHex,
-                "ivHex", ivHex != null ? ivHex : "",
-                "image", Base64.getEncoder().encodeToString(imageBytes));
+        Map<String, String> map = new HashMap<>();
+        map.put("jobId", jobId);
+        map.put("operation", operation);
+        map.put("mode", mode);
+        map.put("keyHex", keyHex);
+        map.put("image", Base64.getEncoder().encodeToString(imageBytes));
+        if (ivHex != null && !ivHex.isEmpty()) {
+            map.put("ivHex", ivHex);
+        }
 
         rabbitTemplate.convertAndSend("image.exchange", "image.process", objectMapper.writeValueAsString(map));
 

@@ -3,6 +3,7 @@ services:
     build: ./c01
     container_name: c01
     ports:
+      - "3000:3000"
       - "8080:8080"
     networks:
       - dadnet
@@ -17,6 +18,7 @@ services:
       RABBITMQ_HOST: c02
       C05_HOST: c05
       REDIS_HOST: redis
+      SPRING_URL: http://localhost:8080
       INTERNAL_SECRET: ${INTERNAL_SECRET:-changeme-internal-secret}
       JWT_SECRET: ${JWT_SECRET:-changeme-32-char-secret-for-hmac-256}
 
@@ -80,6 +82,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    volumes:
+      - mysql_data:/var/lib/mysql
     environment:
       INTERNAL_SECRET: ${INTERNAL_SECRET:-changeme-internal-secret}
 
@@ -100,3 +104,4 @@ networks:
 
 volumes:
   mpi_volume:
+  mysql_data:

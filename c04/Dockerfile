@@ -9,6 +9,11 @@ RUN ssh-keygen -A && mkdir -p /run/sshd
 RUN printf '\nPermitRootLogin yes\nPasswordAuthentication no\nPubkeyAuthentication yes\nStrictModes no\n' \
     >> /etc/ssh/sshd_config
 
+RUN apt-get update && apt-get install -y snmpd && rm -rf /var/lib/apt/lists/*
+COPY c04/snmpd.conf /etc/snmp/snmpd.conf
+COPY c04/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 22
 
-CMD ["/usr/sbin/sshd", "-D"]
+CMD ["/entrypoint.sh"]

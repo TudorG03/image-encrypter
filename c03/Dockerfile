@@ -21,6 +21,9 @@ RUN ssh-keygen -A && mkdir -p /run/sshd
 RUN printf '\nPermitRootLogin yes\nPasswordAuthentication no\nPubkeyAuthentication yes\nStrictModes no\n' \
     >> /etc/ssh/sshd_config
 
+RUN apt-get update && apt-get install -y snmpd && rm -rf /var/lib/apt/lists/*
+COPY c03/snmpd.conf /etc/snmp/snmpd.conf
+
 COPY c03/encrypt_decrypt.c /build/encrypt_decrypt.c
 RUN mpicc -O2 -fopenmp -o /build/encrypt_decrypt /build/encrypt_decrypt.c -lssl -lcrypto
 

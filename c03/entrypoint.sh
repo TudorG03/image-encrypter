@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+snmpd -c /etc/snmp/snmpd.conf
 /usr/sbin/sshd
 
 cp /build/encrypt_decrypt /mpi/encrypt_decrypt

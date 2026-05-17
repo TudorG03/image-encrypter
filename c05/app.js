@@ -1,9 +1,14 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
+const { MongoClient } = require('mongodb');
+const snmp = require('net-snmp');
 const fs = require('fs');
 
 const app = express()
 let db;
+let snmpCol;
+
+// ── MySQL ────────────────────────────────────────────────────────────────────
 
 const connectWithRetry = async () => {
     while (true) {
@@ -28,17 +33,87 @@ const runInitSql = async () => {
     console.log('DB initialized');
 }
 
+// ── MongoDB ──────────────────────────────────────────────────────────────────
+
+const connectMongo = async () => {
+    while (true) {
+        try {
+            const client = new MongoClient('mongodb://127.0.0.1:27017');
+            await client.connect();
+            const mdb = client.db('metricsdb');
+            snmpCol = mdb.collection('snmp_metrics');
+            await snmpCol.createIndex({ node: 1, timestamp: -1 });
+            console.log('MongoDB connected');
+            break;
+        } catch (err) {
+            console.log('Waiting for MongoDB... ', err.message);
+            await new Promise(r => setTimeout(r, 2000));
+        }
+    }
+}
+
+// ── SNMP collector ───────────────────────────────────────────────────────────
+
+const SNMP_NODES = ['c01', 'c02', 'c03', 'c04', 'c05'];
+const SNMP_OIDS = [
+    '1.3.6.1.2.1.1.1.0',       // sysDescr
+    '1.3.6.1.4.1.2021.11.9.0', // ssCpuUser
+    '1.3.6.1.4.1.2021.11.10.0',// ssCpuSystem
+    '1.3.6.1.4.1.2021.4.5.0',  // memTotalReal (kB)
+    '1.3.6.1.4.1.2021.4.6.0',  // memAvailReal (kB)
+];
+
+const pollNode = (node) => new Promise((resolve) => {
+    const session = snmp.createSession(node, 'public', { version: snmp.Version2c, timeout: 3000 });
+    session.get(SNMP_OIDS, (err, varbinds) => {
+        session.close();
+        const doc = { node, timestamp: new Date() };
+        if (err) {
+            doc.error = err.message;
+        } else {
+            const val = (i) => {
+                const vb = varbinds[i];
+                if (snmp.isVarbindError(vb)) return null;
+                return vb.value instanceof Buffer ? vb.value.toString() : Number(vb.value);
+            };
+            doc.sysDescr    = val(0);
+            doc.cpuUser     = val(1);
+            doc.cpuSystem   = val(2);
+            doc.memTotalKB  = val(3);
+            doc.memAvailKB  = val(4);
+        }
+        resolve(doc);
+    });
+});
+
+const collectSnmp = async () => {
+    if (!snmpCol) return;
+    const docs = await Promise.all(SNMP_NODES.map(pollNode));
+    await snmpCol.insertMany(docs);
+};
+
+// ── Startup ──────────────────────────────────────────────────────────────────
+
 const start = async () => {
-    await connectWithRetry();
+    await Promise.all([connectWithRetry(), connectMongo()]);
     await runInitSql();
+
+    // First poll immediately, then every 30s
+    collectSnmp();
+    setInterval(collectSnmp, 30_000);
+
     app.listen(3001, () => console.log('C05 listening on :3001'));
 }
+
+// ── Middleware ───────────────────────────────────────────────────────────────
 
 app.use(express.raw({
     type: 'application/octet-stream',
     limit: '50mb'
 }));
 app.use(express.json());
+
+// ── Image endpoints ──────────────────────────────────────────────────────────
 
 app.post('/image', async (req, res) => {
     const { job_id, operation, mode, aes_key, iv } = req.query;
@@ -85,9 +160,48 @@ app.get('/image/:id', async (req, res) => {
     }
 })
 
+// ── SNMP endpoints ───────────────────────────────────────────────────────────
+
+// GET /snmp?limit=100  — recent readings across all nodes (DB access)
+app.get('/snmp', async (req, res) => {
+    if (!snmpCol) return res.status(503).json({ error: 'MongoDB not ready' });
+    const limit = Math.min(parseInt(req.query.limit) || 100, 1000);
+    try {
+        const docs = await snmpCol
+            .find({}, { projection: { _id: 0 } })
+            .sort({ timestamp: -1 })
+            .limit(limit)
+            .toArray();
+        res.json(docs);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /snmp/latest  — most recent reading per node (web display)
+app.get('/snmp/latest', async (req, res) => {
+    if (!snmpCol) return res.status(503).json({ error: 'MongoDB not ready' });
+    try {
+        const docs = await snmpCol.aggregate([
+            { $sort: { timestamp: -1 } },
+            { $group: { _id: '$node', doc: { $first: '$$ROOT' } } },
+            { $replaceRoot: { newRoot: '$doc' } },
+            { $project: { _id: 0 } },
+            { $sort: { node: 1 } }
+        ]).toArray();
+        res.json(docs);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── Health ───────────────────────────────────────────────────────────────────
+
 app.get('/health', (req, res) => {
     res.status(200).send('OK');
 })
+
+// ── Internal-only endpoints ──────────────────────────────────────────────────
 
 const requireInternalSecret = (req, res, next) => {
     if (req.headers['x-internal-secret'] !== process.env.INTERNAL_SECRET) {
