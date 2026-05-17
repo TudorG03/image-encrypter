@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface SnmpReading {
   node: string;
@@ -30,10 +31,29 @@ function shortDescr(d?: string): string {
   return m ? m[0] : d.substring(0, 40);
 }
 
+function NodeIndicator({ online }: { online: boolean }) {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        width: "7px",
+        height: "7px",
+        borderRadius: "50%",
+        background: online ? "#22c55e" : "#ef4444",
+        boxShadow: online ? "0 0 0 2px rgba(34,197,94,0.2)" : "0 0 0 2px rgba(239,68,68,0.2)",
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
+const REFRESH_INTERVAL = 30;
+
 export default function SnmpPage() {
   const [readings, setReadings] = useState<SnmpReading[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState("");
+  const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
 
   const fetchLatest = async () => {
     try {
@@ -42,6 +62,7 @@ export default function SnmpPage() {
       setReadings(await res.json());
       setLastUpdated(new Date());
       setError("");
+      setCountdown(REFRESH_INTERVAL);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to fetch SNMP data");
     }
@@ -49,70 +70,116 @@ export default function SnmpPage() {
 
   useEffect(() => {
     fetchLatest();
-    const id = setInterval(fetchLatest, 30_000);
-    return () => clearInterval(id);
+    const pollId = setInterval(fetchLatest, REFRESH_INTERVAL * 1000);
+    return () => clearInterval(pollId);
+  }, []);
+
+  useEffect(() => {
+    const tickId = setInterval(() => {
+      setCountdown((c) => (c > 0 ? c - 1 : REFRESH_INTERVAL));
+    }, 1000);
+    return () => clearInterval(tickId);
   }, []);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold text-gray-800">SNMP Node Metrics</h1>
-        <Link href="/dashboard" className="text-sm text-blue-600 hover:underline">
-          ← Back to Dashboard
-        </Link>
+    <div className="max-w-3xl mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <Link
+            href="/dashboard"
+            className="text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text)] transition-colors flex items-center gap-1 mb-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+            Dashboard
+          </Link>
+          <h1 className="text-lg font-semibold gradient-text">SNMP Node Metrics</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span>Refresh in {countdown}s</span>
+          </div>
+          <ThemeToggle />
+        </div>
       </div>
 
       {error && (
-        <div className="mb-4 rounded bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700">
+        <div
+          className="flex items-center gap-2 text-xs px-4 py-3 rounded-xl mb-5"
+          style={{ background: "rgba(239,68,68,0.08)", color: "var(--error)", border: "1px solid rgba(239,68,68,0.2)" }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>
+          </svg>
           {error}
         </div>
       )}
 
-      <section className="bg-white shadow rounded-lg overflow-x-auto">
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="bg-gray-50 text-left text-gray-600">
-              <th className="border px-3 py-2 font-medium">Node</th>
-              <th className="border px-3 py-2 font-medium">OS</th>
-              <th className="border px-3 py-2 font-medium">CPU (user+sys)</th>
-              <th className="border px-3 py-2 font-medium">RAM Used</th>
-              <th className="border px-3 py-2 font-medium">Last Seen</th>
-            </tr>
-          </thead>
-          <tbody>
-            {readings.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="border px-3 py-4 text-center text-gray-400">
-                  {lastUpdated ? "No data yet." : "Loading…"}
-                </td>
-              </tr>
-            ) : (
-              readings.map((r) => (
-                <tr key={r.node} className="hover:bg-gray-50">
-                  <td className="border px-3 py-2 font-mono font-medium">{r.node}</td>
-                  {r.error ? (
-                    <td colSpan={3} className="border px-3 py-2 text-red-500">
+      <section className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden">
+        {/* Table header */}
+        <div
+          className="grid text-[10px] font-semibold tracking-widest uppercase text-[var(--text-muted)] px-5 py-3"
+          style={{
+            gridTemplateColumns: "1.5fr 2fr 1fr 1fr 1fr",
+            borderBottom: "1px solid var(--border)",
+            background: "var(--surface-raised)",
+          }}
+        >
+          <span>Node</span>
+          <span>OS</span>
+          <span>CPU</span>
+          <span>RAM Used</span>
+          <span>Last Seen</span>
+        </div>
+
+        {readings.length === 0 ? (
+          <div className="px-5 py-10 text-center text-sm text-[var(--text-faint)]">
+            {lastUpdated ? "No data yet." : "Loading…"}
+          </div>
+        ) : (
+          <div className="divide-y divide-[var(--border)]">
+            {readings.map((r) => (
+              <div
+                key={r.node}
+                className="grid items-center px-5 py-3.5 hover:bg-[var(--surface-raised)] transition-colors"
+                style={{ gridTemplateColumns: "1.5fr 2fr 1fr 1fr 1fr" }}
+              >
+                <div className="flex items-center gap-2">
+                  <NodeIndicator online={!r.error} />
+                  <span className="font-mono text-xs font-medium">{r.node}</span>
+                </div>
+                {r.error ? (
+                  <>
+                    <span className="text-xs col-span-3" style={{ color: "var(--error)", opacity: 0.8 }}>
                       Offline — {r.error}
-                    </td>
-                  ) : (
-                    <>
-                      <td className="border px-3 py-2 text-xs text-gray-600">{shortDescr(r.sysDescr)}</td>
-                      <td className="border px-3 py-2">{cpuPct(r)}</td>
-                      <td className="border px-3 py-2">{ramUsedPct(r)}</td>
-                    </>
-                  )}
-                  <td className="border px-3 py-2 text-xs text-gray-400">
-                    {new Date(r.timestamp).toLocaleTimeString()}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                    </span>
+                    <span className="text-xs text-[var(--text-faint)]">
+                      {new Date(r.timestamp).toLocaleTimeString()}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-xs text-[var(--text-muted)] truncate pr-2">{shortDescr(r.sysDescr)}</span>
+                    <span className="text-xs font-mono">{cpuPct(r)}</span>
+                    <span className="text-xs font-mono">{ramUsedPct(r)}</span>
+                    <span className="text-xs text-[var(--text-faint)]">
+                      {new Date(r.timestamp).toLocaleTimeString()}
+                    </span>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {lastUpdated && (
-        <p className="mt-3 text-xs text-gray-400">
+        <p className="mt-3 text-xs text-[var(--text-faint)]">
           Last updated: {lastUpdated.toLocaleTimeString()} · auto-refreshes every 30s
         </p>
       )}
