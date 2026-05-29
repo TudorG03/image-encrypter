@@ -55,7 +55,6 @@ services:
     environment:
       RABBITMQ_HOST: c02
       C05_HOST: c05
-      C01_HOST: c01
 
   c04:
     build:
