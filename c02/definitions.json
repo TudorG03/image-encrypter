@@ -32,11 +32,26 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {}
+        },
+        {
+            "name": "job.events.exchange",
+            "vhost": "/",
+            "type": "topic",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {}
         }
     ],
     "queues": [
         {
             "name": "image.queue",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {}
+        },
+        {
+            "name": "job.done.queue",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
@@ -50,6 +65,14 @@
             "destination": "image.queue",
             "destination_type": "queue",
             "routing_key": "image.process",
+            "arguments": {}
+        },
+        {
+            "source": "job.events.exchange",
+            "vhost": "/",
+            "destination": "job.done.queue",
+            "destination_type": "queue",
+            "routing_key": "job.done",
             "arguments": {}
         }
     ]
