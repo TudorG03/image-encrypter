@@ -60,24 +60,23 @@ public class RabbitMQConfig {
                 .with("job.done");
     }
 
-    // C03 publishes plain JSON without a __TypeId__ header, so map all
-    // incoming bodies on the listener side to JobDoneRequest by default.
+    // Scope the JSON converter inside the listener factory only. Exposing it
+    // as a top-level @Bean would let Spring Boot's RabbitAutoConfiguration
+    // pick it up as the global RabbitTemplate MessageConverter, which would
+    // double-encode the JSON string JobService.submit publishes for image
+    // jobs. C03 sends plain JSON without a __TypeId__ header, so the
+    // class mapper pins the deserialized type to JobDoneRequest.
     @Bean
-    Jackson2JsonMessageConverter jobDoneMessageConverter() {
+    SimpleRabbitListenerContainerFactory jsonRabbitListenerContainerFactory(
+            ConnectionFactory connectionFactory) {
         Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter();
         DefaultClassMapper classMapper = new DefaultClassMapper();
         classMapper.setDefaultType(JobDoneRequest.class);
         converter.setClassMapper(classMapper);
-        return converter;
-    }
 
-    @Bean
-    SimpleRabbitListenerContainerFactory jsonRabbitListenerContainerFactory(
-            ConnectionFactory connectionFactory,
-            Jackson2JsonMessageConverter jobDoneMessageConverter) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
-        factory.setMessageConverter(jobDoneMessageConverter);
+        factory.setMessageConverter(converter);
         return factory;
     }
 }

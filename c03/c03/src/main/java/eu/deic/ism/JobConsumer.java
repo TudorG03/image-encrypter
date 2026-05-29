@@ -4,12 +4,18 @@ import com.rabbitmq.client.ConnectionFactory;
 
 import java.io.IOException;
 import java.util.Base64;
+import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
 public class JobConsumer implements Runnable {
+
+    private static final String JOB_EVENTS_EXCHANGE = "job.events.exchange";
+    private static final String JOB_DONE_ROUTING_KEY = "job.done";
+
+    private final ObjectMapper mapper = new ObjectMapper();
 
     private Connection connection;
     private Channel channel;
@@ -51,18 +57,24 @@ public class JobConsumer implements Runnable {
     }
 
     private void handleMessage(byte[] body) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
         JobMessage job = mapper.readValue(body, JobMessage.class);
         byte[] imageBytes = Base64.getDecoder().decode(job.image);
 
         try {
             byte[] result = new MpiLauncher().launch(imageBytes, job);
             String downloadUrl = new C05Client().upload(result, job);
-            new C01Client().notify(job.jobId, downloadUrl);
+            publishJobDone(job.jobId, downloadUrl);
         } catch (Exception e) {
             System.err.println("Job " + job.jobId + " failed: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private void publishJobDone(String jobId, String downloadUrl) throws IOException {
+        byte[] body = mapper.writeValueAsBytes(Map.of(
+                "jobId", jobId,
+                "downloadUrl", downloadUrl));
+        channel.basicPublish(JOB_EVENTS_EXCHANGE, JOB_DONE_ROUTING_KEY, null, body);
     }
 
     public void stop() {
