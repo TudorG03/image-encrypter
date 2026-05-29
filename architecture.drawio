@@ -1,0 +1,314 @@
+<mxfile host="app.diagrams.net" modified="2026-05-29T00:00:00.000Z" agent="Claude Code" version="21.6.5" type="device">
+  <diagram id="arch" name="Architecture">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- TITLE                                                           -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="title" value="AES Image Encryption / Decryption — 5-Container Architecture"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;"
+          vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- USER / BROWSER                                                  -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="user" value="&lt;b&gt;User / Browser&lt;/b&gt;"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=13;"
+          vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- C01 — API Gateway + Frontend                                    -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="c01" value="&lt;b&gt;C01 — API Gateway + Frontend&lt;/b&gt;"
+          style="swimlane;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;rounded=1;"
+          vertex="1" parent="1">
+          <mxGeometry x="240" y="80" width="330" height="410" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c01-fe" value="&lt;b&gt;Frontend :3000&lt;/b&gt;&lt;br/&gt;Next.js 15 / React 19&lt;br/&gt;(standalone Node server)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;"
+          vertex="1" parent="c01">
+          <mxGeometry x="10" y="40" width="148" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c01-be" value="&lt;b&gt;Spring Boot :8080&lt;/b&gt;&lt;br/&gt;REST API&lt;br/&gt;Spring Security + JWT"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;"
+          vertex="1" parent="c01">
+          <mxGeometry x="172" y="40" width="148" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c01-pub" value="&lt;b&gt;AMQP Publisher&lt;/b&gt;&lt;br/&gt;image.exchange (direct)&lt;br/&gt;routing key: image.process"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;"
+          vertex="1" parent="c01">
+          <mxGeometry x="10" y="125" width="148" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c01-sub" value="&lt;b&gt;@RabbitListener&lt;/b&gt;&lt;br/&gt;job.done.queue&lt;br/&gt;handleJobDone()"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;"
+          vertex="1" parent="c01">
+          <mxGeometry x="172" y="125" width="148" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c01-redis" value="&lt;b&gt;Redis pub/sub&lt;/b&gt;&lt;br/&gt;publish on job-done · subscribe per SSE session&lt;br/&gt;channel: job:{jobId}"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;"
+          vertex="1" parent="c01">
+          <mxGeometry x="10" y="210" width="148" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c01-sse" value="&lt;b&gt;SSE Notifier&lt;/b&gt;&lt;br/&gt;GET /api/jobs/{id}/stream&lt;br/&gt;emits 'done' event"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;"
+          vertex="1" parent="c01">
+          <mxGeometry x="172" y="210" width="148" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c01-auth" value="POST /api/auth/register   ·   POST /api/auth/login   (BCrypt + JWT HS256)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;"
+          vertex="1" parent="c01">
+          <mxGeometry x="10" y="295" width="310" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c01-jobs" value="POST /api/jobs/submit   ·   GET /api/jobs   ·   GET /api/jobs/{id}/stream"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;"
+          vertex="1" parent="c01">
+          <mxGeometry x="10" y="340" width="310" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- C02 — Message Broker                                            -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="c02" value="&lt;b&gt;C02 — Message Broker&lt;/b&gt;"
+          style="swimlane;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;rounded=1;"
+          vertex="1" parent="1">
+          <mxGeometry x="660" y="80" width="270" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c02-rmq" value="&lt;b&gt;RabbitMQ :5672&lt;/b&gt;&amp;nbsp;&amp;nbsp;(mgmt :15672)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;"
+          vertex="1" parent="c02">
+          <mxGeometry x="10" y="40" width="250" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c02-img" value="&lt;b&gt;image.exchange&lt;/b&gt; (direct, durable)&lt;br/&gt;routing key: image.process&lt;br/&gt;⮕ &lt;b&gt;image.queue&lt;/b&gt; (durable)&lt;br/&gt;consumer: C03 JobConsumer"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;"
+          vertex="1" parent="c02">
+          <mxGeometry x="10" y="80" width="250" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c02-evt" value="&lt;b&gt;job.events.exchange&lt;/b&gt; (topic, durable)&lt;br/&gt;routing key: job.done&lt;br/&gt;⮕ &lt;b&gt;job.done.queue&lt;/b&gt; (durable)&lt;br/&gt;consumer: C01 @RabbitListener"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;"
+          vertex="1" parent="c02">
+          <mxGeometry x="10" y="180" width="250" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- C03 — AMQP Subscriber + MPI Launcher                            -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="c03" value="&lt;b&gt;C03 — AMQP Subscriber + MPI Launcher&lt;/b&gt;"
+          style="swimlane;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;rounded=1;"
+          vertex="1" parent="1">
+          <mxGeometry x="660" y="430" width="310" height="320" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c03-tomee" value="&lt;b&gt;Apache TomEE Plume 10&lt;/b&gt;&lt;br/&gt;ServletContextListener bootstraps a Runnable&lt;br/&gt;consuming image.queue via amqp-client"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;"
+          vertex="1" parent="c03">
+          <mxGeometry x="10" y="40" width="290" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c03-mpi" value="&lt;b&gt;MpiLauncher (Java ProcessBuilder)&lt;/b&gt;&lt;br/&gt;mpirun --allow-run-as-root -np 2 --host c03,c04&lt;br/&gt;/mpi/encrypt_decrypt &lt;in.bmp&gt; &lt;out.bmp&gt; &lt;key&gt; &lt;op&gt; &lt;mode&gt;"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;"
+          vertex="1" parent="c03">
+          <mxGeometry x="10" y="110" width="290" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c03-omp" value="&lt;b&gt;OpenMP&lt;/b&gt; — parallel AES per pixel-chunk on this rank&lt;br/&gt;OpenSSL EVP · ECB / CBC / CFB / OFB / CTR"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;"
+          vertex="1" parent="c03">
+          <mxGeometry x="10" y="185" width="290" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c03-upload" value="On completion → REST POST /image to C05 (octet-stream)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;"
+          vertex="1" parent="c03">
+          <mxGeometry x="10" y="245" width="290" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c03-done" value="Then AMQP publish to &lt;b&gt;job.events.exchange&lt;/b&gt; / job.done&lt;br/&gt;body: { jobId, downloadUrl }"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;"
+          vertex="1" parent="c03">
+          <mxGeometry x="10" y="280" width="290" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- C04 — MPI Worker Node                                           -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="c04" value="&lt;b&gt;C04 — MPI Worker Node&lt;/b&gt;"
+          style="swimlane;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;rounded=1;dashed=1;"
+          vertex="1" parent="1">
+          <mxGeometry x="1030" y="430" width="240" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c04-content" value="&lt;b&gt;sshd&lt;/b&gt; only (key-based, no password)&lt;br/&gt;&lt;br/&gt;Receives MPI rank from c03 over SSH&lt;br/&gt;&lt;br/&gt;&lt;b&gt;OpenMP&lt;/b&gt; AES encrypt / decrypt&lt;br/&gt;on its assigned BMP chunks&lt;br/&gt;&lt;br/&gt;Shared volume: /mpi"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;"
+          vertex="1" parent="c04">
+          <mxGeometry x="10" y="40" width="220" height="170" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- Redis (sidecar)                                                 -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="redis" value="&lt;b&gt;Redis :6379&lt;/b&gt;&lt;br/&gt;in-memory pub/sub fan-out&lt;br/&gt;channel: job:{jobId}&lt;br/&gt;message = downloadUrl"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;"
+          vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="200" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- C05 — Data Layer + REST API                                     -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="c05" value="&lt;b&gt;C05 — Data Layer + REST API&lt;/b&gt;"
+          style="swimlane;startSize=30;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;fontStyle=1;rounded=1;"
+          vertex="1" parent="1">
+          <mxGeometry x="280" y="680" width="340" height="320" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c05-express" value="&lt;b&gt;Node.js 22 / Express :3001&lt;/b&gt;"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;"
+          vertex="1" parent="c05">
+          <mxGeometry x="10" y="40" width="320" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c05-mysql" value="&lt;b&gt;MySQL :3306&lt;/b&gt;&lt;br/&gt;db: imagesdb&lt;br/&gt;· users&lt;br/&gt;· jobs&lt;br/&gt;· processed_images (LONGBLOB)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;"
+          vertex="1" parent="c05">
+          <mxGeometry x="10" y="87" width="155" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c05-mongo" value="&lt;b&gt;MongoDB :27017&lt;/b&gt;&lt;br/&gt;db: metricsdb&lt;br/&gt;· snmp_metrics&lt;br/&gt;(optional —&lt;br/&gt;not graded)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;dashed=1;"
+          vertex="1" parent="c05">
+          <mxGeometry x="175" y="87" width="155" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c05-ep-public" value="&lt;b&gt;Public:&lt;/b&gt; POST /image · GET /image/:id · GET /snmp · GET /snmp/latest · GET /health"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;"
+          vertex="1" parent="c05">
+          <mxGeometry x="10" y="197" width="320" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c05-ep-internal" value="&lt;b&gt;Internal&lt;/b&gt; (X-Internal-Secret): POST /users · GET /users/:username&lt;br/&gt;POST /jobs · PATCH /jobs/:jobId · GET /jobs?user_id="
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;"
+          vertex="1" parent="c05">
+          <mxGeometry x="10" y="257" width="320" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- LEGEND                                                          -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="legend" value="&lt;b&gt;LEGEND&lt;/b&gt;&lt;br/&gt;─── solid arrow: synchronous / data transfer&lt;br/&gt;- - - dashed arrow: async event / notification&lt;br/&gt;- - - dashed border: optional component&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Base image:&lt;/b&gt; critoma/amd64_u24_noble_ism_security&lt;br/&gt;(x86-64 Ubuntu 24 LTS only)&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Orchestration:&lt;/b&gt; docker compose (compose.yaml)&lt;br/&gt;Volumes: mpi_volume (c03↔c04), mysql_data (c05)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=11;align=left;"
+          vertex="1" parent="1">
+          <mxGeometry x="1030" y="680" width="280" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- MESSAGE SHAPE NOTE                                              -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="msg-note" value="&lt;b&gt;Image-job message (C01 → C02 → C03):&lt;/b&gt;&lt;br/&gt;{ jobId: UUID, operation: encrypt|decrypt,&lt;br/&gt;  mode: ECB|CBC|CFB|OFB|CTR, keyHex, ivHex?,&lt;br/&gt;  image: base64(BMP) }&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Job-done event (C03 → C02 → C01):&lt;/b&gt;&lt;br/&gt;{ jobId, downloadUrl }"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;"
+          vertex="1" parent="1">
+          <mxGeometry x="1030" y="890" width="340" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- EDGES / ARROWS                                                  -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+
+        <!-- User → C01  (REST upload + browse) -->
+        <mxCell id="e-user-c01" value="REST POST /api/jobs/submit&lt;br/&gt;(BMP + keyHex + op/mode)&lt;br/&gt;+ SSE /api/jobs/{id}/stream"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;strokeWidth=2;fontColor=#6c8ebf;fontSize=10;"
+          edge="1" source="user" target="c01" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- C01 → C02  (publish image-job) -->
+        <mxCell id="e-c01-c02-pub" value="AMQP publish&lt;br/&gt;image.exchange / image.process"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#d6b656;strokeWidth=2;fontColor=#d6b656;fontSize=10;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;"
+          edge="1" source="c01" target="c02" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- C02 → C03  (deliver image.queue) -->
+        <mxCell id="e-c02-c03" value="AMQP deliver&lt;br/&gt;image.queue"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#d6b656;strokeWidth=2;fontColor=#d6b656;fontSize=10;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;"
+          edge="1" source="c02" target="c03" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- C03 → C02  (publish job.done) -->
+        <mxCell id="e-c03-c02-done" value="AMQP publish&lt;br/&gt;job.events.exchange / job.done"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#d6b656;strokeWidth=2;fontColor=#d6b656;fontSize=10;dashed=1;exitX=0.7;exitY=0;exitDx=0;exitDy=0;entryX=0.7;entryY=1;entryDx=0;entryDy=0;"
+          edge="1" source="c03" target="c02" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- C02 → C01  (deliver job.done) -->
+        <mxCell id="e-c02-c01-done" value="AMQP deliver&lt;br/&gt;job.done.queue"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#d6b656;strokeWidth=2;fontColor=#d6b656;fontSize=10;dashed=1;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.4;entryDx=0;entryDy=0;"
+          edge="1" source="c02" target="c01" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- C03 ↔ C04  (OpenMPI over SSH) -->
+        <mxCell id="e-c03-c04" value="OpenMPI over SSH&lt;br/&gt;(BMP chunks across ranks)"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#82b366;strokeWidth=2;fontColor=#82b366;fontSize=10;startArrow=block;startFill=1;endArrow=block;endFill=1;"
+          edge="1" source="c03" target="c04" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- C01 ↔ Redis  (pub for done, sub for SSE) -->
+        <mxCell id="e-c01-redis" value="PUBLISH on job-done&lt;br/&gt;SUBSCRIBE per SSE session"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;strokeWidth=2;fontColor=#b85450;fontSize=10;dashed=1;startArrow=block;startFill=1;endArrow=block;endFill=1;"
+          edge="1" source="c01" target="redis" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- C03 → C05  (upload processed BMP BLOB) -->
+        <mxCell id="e-c03-c05" value="REST POST /image&lt;br/&gt;processed BMP BLOB"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#9673a6;strokeWidth=2;fontColor=#9673a6;fontSize=10;"
+          edge="1" source="c03" target="c05" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- C01 ↔ C05  (auth + job CRUD via X-Internal-Secret) -->
+        <mxCell id="e-c01-c05" value="REST internal&lt;br/&gt;(users + jobs CRUD)&lt;br/&gt;X-Internal-Secret"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#9673a6;strokeWidth=2;fontColor=#9673a6;fontSize=10;startArrow=block;startFill=1;endArrow=block;endFill=1;"
+          edge="1" source="c01" target="c05" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- C01 → User  (SSE 'done' event) -->
+        <mxCell id="e-c01-user" value="SSE 'done' event&lt;br/&gt;(downloadUrl → c05:3001/image/:id)"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;strokeWidth=2;fontColor=#b85450;fontSize=10;dashed=1;"
+          edge="1" source="c01" target="user" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User → C05  (direct download of result) -->
+        <mxCell id="e-user-c05" value="GET /image/:id&lt;br/&gt;(direct BMP download)"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#9673a6;strokeWidth=2;fontColor=#9673a6;fontSize=10;"
+          edge="1" source="user" target="c05" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
